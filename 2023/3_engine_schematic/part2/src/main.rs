@@ -200,9 +200,6 @@ impl Schematic {
                     // have the left index crawl to the left, appending Digits it finds
                     // to the beginning of numeric_string. Break if not a Digit.
                     while left_index >= 0 {
-                        if was_visited([x, left_index as usize], &visited) {
-                            break;
-                        }
                         if let Symbol::Digit(d) = self.0[x][left_index as usize] {
                             visited.push([x, left_index as usize]);
                             numeric_string.insert(0, d);
@@ -214,9 +211,6 @@ impl Schematic {
                     // have the right_index crawl to the right, appending Digits it finds
                     // to the end of numeric_string. Break if not a Digit.
                     while right_index < self.0[x].len() {
-                        if was_visited([x, right_index], &visited) {
-                            break;
-                        }
                         if let Symbol::Digit(d) = self.0[x][right_index] {
                             visited.push([x, right_index]);
                             numeric_string.push(d);
