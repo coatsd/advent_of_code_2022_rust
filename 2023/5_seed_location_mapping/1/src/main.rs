@@ -79,13 +79,22 @@ impl SeedData {
             );
         }
 
+        if debug_print {
+            println!("Starting get_seed_location_data...");
+        }
+
         let mut result = vec![];
 
         for seed in self.seeds.iter() {
             let mut seed_loc = [*seed, *seed];
-            for dest_source_cat in self.dest_source_cats.iter() {
-                if let Some(d) = Self::parse_dest_if_mentioned(seed_loc[1], dest_source_cat) {
+            for (j, dest_source_cat) in self.dest_source_cats.iter().enumerate() {
+                if let Some(d) =
+                    Self::parse_dest_if_mentioned(seed_loc[1], dest_source_cat, debug_print)
+                {
                     seed_loc[1] = d;
+                }
+                if debug_print {
+                    println!("Seed {}, Category {}: Dest = {}", seed, j, seed_loc[1]);
                 }
             }
             if debug_print {
@@ -97,23 +106,33 @@ impl SeedData {
         return Ok(result);
     }
 
-    fn parse_dest_if_mentioned(source: u32, dest_source_cat: &Vec<[u32; 3]>) -> Option<u32> {
+    fn parse_dest_if_mentioned(
+        source: u32,
+        dest_source_cat: &Vec<[u32; 3]>,
+        debug_print: bool,
+    ) -> Option<u32> {
         let mut lowest_dest_source_cat_val = None;
         for dest_source in dest_source_cat.iter() {
-            for i in 0..dest_source[2] {
-                if dest_source[1] + i == source {
-                    lowest_dest_source_cat_val = match lowest_dest_source_cat_val {
-                        Some(d) => {
-                            let curr_dest = dest_source[0] + i;
-                            if curr_dest < d {
-                                Some(curr_dest)
-                            } else {
-                                Some(d)
-                            }
-                        }
-                        None => Some(dest_source[0] + i),
-                    }
+            if debug_print {
+                println!(
+                    "Checking if Source {} is contained in range {}+{}",
+                    source, dest_source[1], dest_source[2],
+                );
+            }
+            let greater_than_upper_bound = match dest_source[1].checked_add(dest_source[2]) {
+                Some(n) => source > n,
+                None => false,
+            };
+            if source < dest_source[1] || greater_than_upper_bound {
+                continue;
+            }
+            let current_cat_val = source - dest_source[1] + dest_source[0];
+            if let Some(lowest) = lowest_dest_source_cat_val {
+                if lowest < current_cat_val {
+                    lowest_dest_source_cat_val = Some(current_cat_val);
                 }
+            } else {
+                lowest_dest_source_cat_val = Some(current_cat_val);
             }
         }
         return lowest_dest_source_cat_val;
