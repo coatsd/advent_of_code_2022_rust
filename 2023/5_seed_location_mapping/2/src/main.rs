@@ -89,13 +89,40 @@ impl SeedData {
     }
 
     fn parse_lowest_seed_loc(&self, seed_range: (u32, u32), debug_print: bool) -> u32 {
-        let mut loc_ranges = self.parse_source_range_to_dest_ranges(seed_range, 0, debug_print);
-        for i in 1..self.dest_source_cats.len() {
-            let dest_source_ranges = loc_ranges
+        let mut loc_ranges = vec![seed_range];
+        for i in 0..self.dest_source_cats.len() {
+            if debug_print {
+                println!(
+                    "Starting category {} for seed_range ({}, {})",
+                    i + 1,
+                    seed_range.0,
+                    seed_range.1
+                );
+            }
+            let default_value = loc_ranges[0];
+
+            loc_ranges = loc_ranges
                 .iter()
-                .map(|r| self.parse_source_range_to_dest_ranges(*r, i, debug_print))
-                .collect::<Vec<Vec<(u32, u32)>>>();
-            loc_ranges = dest_source_ranges.into_iter().flatten().collect();
+                // We get back a vector of vectors of potential destinations.
+                .map(|r| self.parse_source_range_to_dest_ranges(*r, i))
+                .collect::<Vec<Vec<(u32, u32)>>>()
+                // We need to flatten those vectors, which will make more destination ranges to
+                // work with.
+                .into_iter()
+                .flatten()
+                .collect();
+
+            if loc_ranges.len() == 0 {
+                loc_ranges.push(default_value);
+            }
+
+            if debug_print {
+                println!(
+                    "current length of state for category {}: {}",
+                    i + 1,
+                    loc_ranges.len()
+                );
+            }
         }
 
         let mut result = u32::MAX;
@@ -104,6 +131,12 @@ impl SeedData {
                 result = loc_min;
             }
         }
+        if debug_print {
+            println!(
+                "lowest for seed_range ({}, {}): {}",
+                seed_range.0, seed_range.1, result
+            );
+        }
         return result;
     }
 
@@ -111,10 +144,9 @@ impl SeedData {
         &self,
         source_range: (u32, u32),
         dest_source_cat_index: usize,
-        debug_print: bool,
     ) -> Vec<(u32, u32)> {
         if dest_source_cat_index > 6 {
-            panic!("parse_source_range_to_dest_ranges cannot have a dest_source_cat_index greater than 6!")
+            panic!("parse_source_range_to_dest_ranges cannot have a dest_source_cat_index greater than 6!");
         }
 
         let add_or_default = |a: u32, b: u32| a.checked_add(b).map_or_else(|| u32::MAX, |v| v);
@@ -139,7 +171,7 @@ impl SeedData {
                 false => dest_source[0] + (source_range.0 - dest_source[1]),
             };
             let highest_dest = match source_upper_bound < map_source_upper_bound {
-                true => add_or_default(dest_source[0], source_upper_bound - map_source_upper_bound),
+                true => add_or_default(dest_source[0], map_source_upper_bound - source_upper_bound),
                 false => add_or_default(dest_source[0], dest_source[2]),
             };
             result.push((lowest_dest, highest_dest));
@@ -361,7 +393,7 @@ mod tests {
         let seed_data = SeedData::parse(buf, false).unwrap();
         let lowest = seed_data.get_lowest_location(false).unwrap();
 
-        assert_eq!(lowest, 35);
+        assert_eq!(lowest, 46);
     }
 
     #[derive(Debug)]
