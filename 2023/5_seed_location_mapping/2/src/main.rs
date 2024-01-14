@@ -99,7 +99,6 @@ impl SeedData {
                     seed_range.1
                 );
             }
-            let default_value = loc_ranges[0];
 
             loc_ranges = loc_ranges
                 .iter()
@@ -112,15 +111,11 @@ impl SeedData {
                 .flatten()
                 .collect();
 
-            if loc_ranges.len() == 0 {
-                loc_ranges.push(default_value);
-            }
-
             if debug_print {
                 println!(
-                    "current length of state for category {}: {}",
+                    "state after running category {} calculations: {:?}",
                     i + 1,
-                    loc_ranges.len()
+                    loc_ranges
                 );
             }
         }
@@ -166,15 +161,49 @@ impl SeedData {
                 continue;
             }
 
-            let lowest_dest = match source_range.0 < dest_source[1] {
-                true => dest_source[0],
+            let mut lower_cutoff: Option<(u32, u32)> = None;
+            let mut upper_cutoff: Option<(u32, u32)> = None;
+            let source_min_lower_than_map_source_min = source_range.0 < dest_source[1];
+            let source_max_lower_than_map_source_max = source_upper_bound < map_source_upper_bound;
+
+            let lowest_dest = match source_min_lower_than_map_source_min {
+                true => {
+                    let lower_cutoff_min = source_range.0;
+                    let lower_cutoff_range = dest_source[1] - source_range.0;
+                    if lower_cutoff_range != 0 {
+                        lower_cutoff = Some((lower_cutoff_min, lower_cutoff_range));
+                    }
+                    dest_source[0]
+                }
                 false => dest_source[0] + (source_range.0 - dest_source[1]),
             };
-            let highest_dest = match source_upper_bound < map_source_upper_bound {
-                true => add_or_default(dest_source[0], map_source_upper_bound - source_upper_bound),
-                false => add_or_default(dest_source[0], dest_source[2]),
+            let dest_range = match source_max_lower_than_map_source_max {
+                true => source_upper_bound - source_range.0,
+                false => {
+                    let upper_cutoff_min = add_or_default(map_source_upper_bound, 1);
+                    let upper_cutoff_range = source_upper_bound - map_source_upper_bound;
+                    if upper_cutoff_range != 0 {
+                        upper_cutoff = Some((upper_cutoff_min, upper_cutoff_range));
+                    }
+                    map_source_upper_bound
+                        - match source_min_lower_than_map_source_min {
+                            true => dest_source[1],
+                            false => source_range.0,
+                        }
+                }
             };
-            result.push((lowest_dest, highest_dest));
+
+            result.push((lowest_dest, dest_range));
+            if let Some(lc) = lower_cutoff {
+                result.push(lc);
+            }
+            if let Some(uc) = upper_cutoff {
+                result.push(uc);
+            }
+        }
+
+        if result.len() == 0 {
+            result.push(source_range);
         }
 
         return result;
