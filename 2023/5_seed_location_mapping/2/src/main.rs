@@ -140,17 +140,13 @@ impl SeedData {
         source_range: (u32, u32),
         dest_source_cat_index: usize,
     ) -> Vec<(u32, u32)> {
-        if dest_source_cat_index > 6 {
-            panic!("parse_source_range_to_dest_ranges cannot have a dest_source_cat_index greater than 6!");
-        }
-
         let add_or_default = |a: u32, b: u32| a.checked_add(b).map_or_else(|| u32::MAX, |v| v);
 
-        let source_upper_bound = add_or_default(source_range.0, source_range.1);
+        let mut source_upper_bound = add_or_default(source_range.0, source_range.1 - 1);
 
         let mut result = vec![];
         for dest_source in self.dest_source_cats[dest_source_cat_index].iter() {
-            let map_source_upper_bound = add_or_default(dest_source[1], dest_source[2]);
+            let mut map_source_upper_bound = add_or_default(dest_source[1], dest_source[2] - 1);
 
             if !Self::is_in_range(
                 source_range.0,
@@ -165,6 +161,8 @@ impl SeedData {
             let mut upper_cutoff: Option<(u32, u32)> = None;
             let source_min_lower_than_map_source_min = source_range.0 < dest_source[1];
             let source_max_lower_than_map_source_max = source_upper_bound < map_source_upper_bound;
+            source_upper_bound = add_or_default(source_upper_bound, 1);
+            map_source_upper_bound = add_or_default(map_source_upper_bound, 1);
 
             let lowest_dest = match source_min_lower_than_map_source_min {
                 true => {
@@ -173,6 +171,7 @@ impl SeedData {
                     if lower_cutoff_range != 0 {
                         lower_cutoff = Some((lower_cutoff_min, lower_cutoff_range));
                     }
+
                     dest_source[0]
                 }
                 false => dest_source[0] + (source_range.0 - dest_source[1]),
@@ -180,16 +179,21 @@ impl SeedData {
             let dest_range = match source_max_lower_than_map_source_max {
                 true => source_upper_bound - source_range.0,
                 false => {
-                    let upper_cutoff_min = add_or_default(map_source_upper_bound, 1);
+                    let upper_cutoff_min = map_source_upper_bound;
                     let upper_cutoff_range = source_upper_bound - map_source_upper_bound;
                     if upper_cutoff_range != 0 {
                         upper_cutoff = Some((upper_cutoff_min, upper_cutoff_range));
                     }
-                    map_source_upper_bound
-                        - match source_min_lower_than_map_source_min {
-                            true => dest_source[1],
-                            false => source_range.0,
-                        }
+
+                    if map_source_upper_bound == u32::MAX {
+                        dest_source[2] - (lowest_dest - dest_source[0])
+                    } else {
+                        map_source_upper_bound
+                            - match source_min_lower_than_map_source_min {
+                                true => dest_source[1],
+                                false => source_range.0,
+                            }
+                    }
                 }
             };
 
