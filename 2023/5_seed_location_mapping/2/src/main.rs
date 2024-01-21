@@ -23,8 +23,8 @@ fn main() {
 }
 
 pub struct SeedData {
-    seeds: Vec<(u32, u32)>,
-    dest_source_cats: [Vec<[u32; 3]>; 7],
+    seeds: Vec<(u64, u64)>,
+    dest_source_cats: [Vec<[u64; 3]>; 7],
 }
 impl SeedData {
     pub fn parse(buf: BufReader<File>, debug_print: bool) -> Result<Self, String> {
@@ -61,7 +61,7 @@ impl SeedData {
         return Ok(result);
     }
 
-    pub fn get_lowest_location(&self, debug_print: bool) -> Result<u32, String> {
+    pub fn get_lowest_location(&self, debug_print: bool) -> Result<u64, String> {
         if self.seeds.len() == 0 {
             return Err("Seeds have not been parsed! get_seed_location_data failed.".to_string());
         }
@@ -76,7 +76,7 @@ impl SeedData {
             println!("Starting get_lowest_seed_location...");
         }
 
-        let mut result = u32::MAX;
+        let mut result = u64::MAX;
 
         for seed_range in self.seeds.iter() {
             let curr_range_lowest = self.parse_lowest_seed_loc(*seed_range, debug_print);
@@ -88,7 +88,7 @@ impl SeedData {
         return Ok(result);
     }
 
-    fn parse_lowest_seed_loc(&self, seed_range: (u32, u32), debug_print: bool) -> u32 {
+    fn parse_lowest_seed_loc(&self, seed_range: (u64, u64), debug_print: bool) -> u64 {
         let mut loc_ranges = vec![seed_range];
         for i in 0..self.dest_source_cats.len() {
             if debug_print {
@@ -104,7 +104,7 @@ impl SeedData {
                 .iter()
                 // We get back a vector of vectors of potential destinations.
                 .map(|r| self.parse_source_range_to_dest_ranges(*r, i))
-                .collect::<Vec<Vec<(u32, u32)>>>()
+                .collect::<Vec<Vec<(u64, u64)>>>()
                 // We need to flatten those vectors, which will make more destination ranges to
                 // work with.
                 .into_iter()
@@ -120,7 +120,7 @@ impl SeedData {
             }
         }
 
-        let mut result = u32::MAX;
+        let mut result = u64::MAX;
         for (loc_min, _) in loc_ranges {
             if loc_min < result {
                 result = loc_min;
@@ -137,34 +137,24 @@ impl SeedData {
 
     fn parse_source_range_to_dest_ranges(
         &self,
-        source_range: (u32, u32),
+        source_range: (u64, u64),
         dest_source_cat_index: usize,
-    ) -> Vec<(u32, u32)> {
-        let add_or_default = |a: u32, b: u32| a.checked_add(b).map_or_else(|| u32::MAX, |v| v);
-
-        let mut source_upper_bound = add_or_default(source_range.0, source_range.1 - 1);
-
+    ) -> Vec<(u64, u64)> {
         let mut result = vec![];
         for dest_source in self.dest_source_cats[dest_source_cat_index].iter() {
-            let mut map_source_upper_bound = add_or_default(dest_source[1], dest_source[2] - 1);
-
             if !Self::is_in_range(
                 source_range.0,
-                source_upper_bound,
+                source_range.1,
                 dest_source[1],
-                map_source_upper_bound,
+                dest_source[2],
             ) {
                 continue;
             }
 
-            let mut lower_cutoff: Option<(u32, u32)> = None;
-            let mut upper_cutoff: Option<(u32, u32)> = None;
-            let source_min_lower_than_map_source_min = source_range.0 < dest_source[1];
-            let source_max_lower_than_map_source_max = source_upper_bound < map_source_upper_bound;
-            source_upper_bound = add_or_default(source_upper_bound, 1);
-            map_source_upper_bound = add_or_default(map_source_upper_bound, 1);
+            let mut lower_cutoff: Option<(u64, u64)> = None;
+            let mut upper_cutoff: Option<(u64, u64)> = None;
 
-            let lowest_dest = match source_min_lower_than_map_source_min {
+            let lowest_dest = match source_range.0 < dest_source[1] {
                 true => {
                     let lower_cutoff_min = source_range.0;
                     let lower_cutoff_range = dest_source[1] - source_range.0;
@@ -176,25 +166,19 @@ impl SeedData {
                 }
                 false => dest_source[0] + (source_range.0 - dest_source[1]),
             };
-            let dest_range = match source_max_lower_than_map_source_max {
-                true => source_upper_bound - source_range.0,
-                false => {
-                    let upper_cutoff_min = map_source_upper_bound;
-                    let upper_cutoff_range = source_upper_bound - map_source_upper_bound;
+
+            let leftover_source_range = source_range.1 - lower_cutoff.map_or_else(|| 0, |v| v.1);
+            let dest_range = match leftover_source_range > dest_source[2] {
+                true => {
+                    let upper_cutoff_min = lowest_dest + dest_source[2];
+                    let upper_cutoff_range = leftover_source_range - dest_source[2];
                     if upper_cutoff_range != 0 {
                         upper_cutoff = Some((upper_cutoff_min, upper_cutoff_range));
                     }
 
-                    if map_source_upper_bound == u32::MAX {
-                        dest_source[2] - (lowest_dest - dest_source[0])
-                    } else {
-                        map_source_upper_bound
-                            - match source_min_lower_than_map_source_min {
-                                true => dest_source[1],
-                                false => source_range.0,
-                            }
-                    }
+                    dest_source[2]
                 }
+                false => leftover_source_range,
             };
 
             result.push((lowest_dest, dest_range));
@@ -213,8 +197,8 @@ impl SeedData {
         return result;
     }
 
-    fn is_in_range(x1: u32, x2: u32, y1: u32, y2: u32) -> bool {
-        return x1 <= y2 && y1 <= x2;
+    fn is_in_range(x: u64, x_range: u64, y: u64, y_range: u64) -> bool {
+        return x <= y + y_range && y <= x + x_range;
     }
 
     fn new() -> Self {
@@ -232,19 +216,19 @@ impl SeedData {
         };
     }
 
-    fn parse_seeds(l: String) -> Result<Vec<(u32, u32)>, String> {
+    fn parse_seeds(l: String) -> Result<Vec<(u64, u64)>, String> {
         if l.len() == 0 {
             return Ok(vec![]);
         }
 
         let parse_seed = |start_num_string: &mut String,
                           range_num_string: &mut String|
-         -> Result<(u32, u32), String> {
-            let start = match start_num_string.parse::<u32>() {
+         -> Result<(u64, u64), String> {
+            let start = match start_num_string.parse::<u64>() {
                 Ok(n) => n,
                 Err(e) => return Err(e.to_string()),
             };
-            let range = match range_num_string.parse::<u32>() {
+            let range = match range_num_string.parse::<u64>() {
                 Ok(n) => n,
                 Err(e) => return Err(e.to_string()),
             };
@@ -313,7 +297,7 @@ impl SeedData {
             return Ok(());
         }
 
-        let mut result: [u32; 3] = [0, 0, 0];
+        let mut result: [u64; 3] = [0, 0, 0];
         let mut result_index = 0;
         let mut numeric_string = "".to_string();
 
@@ -321,7 +305,7 @@ impl SeedData {
             match c {
                 '0'..='9' => numeric_string.push(c),
                 ' ' => {
-                    match numeric_string.parse::<u32>() {
+                    match numeric_string.parse::<u64>() {
                         Ok(n) => result[result_index] = n,
                         Err(e) => return Err(e.to_string()),
                     };
@@ -333,7 +317,7 @@ impl SeedData {
         }
 
         if numeric_string.len() != 0 {
-            match numeric_string.parse::<u32>() {
+            match numeric_string.parse::<u64>() {
                 Ok(n) => result[2] = n,
                 Err(e) => return Err(e.to_string()),
             }
@@ -430,7 +414,7 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct SeedVec(Vec<(u32, u32)>);
+    struct SeedVec(Vec<(u64, u64)>);
     impl std::cmp::Eq for SeedVec {}
     impl std::cmp::PartialEq for SeedVec {
         fn eq(&self, other: &Self) -> bool {
@@ -447,7 +431,7 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct SourceDestVec(Vec<[u32; 3]>);
+    struct SourceDestVec(Vec<[u64; 3]>);
     impl std::cmp::Eq for SourceDestVec {}
     impl std::cmp::PartialEq for SourceDestVec {
         fn eq(&self, other: &Self) -> bool {
