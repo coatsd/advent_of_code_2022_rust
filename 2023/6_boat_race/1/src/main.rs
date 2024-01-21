@@ -18,13 +18,16 @@ fn main() {
     let buf = BufReader::new(open_file(file_path));
     let data = BoatRaceData::parse(buf, debug_print).unwrap();
 
-    let viable_time_ranges = data.get_charge_time_ranges();
+    let viable_time_ranges = data.get_charge_time_ranges(debug_print);
     let mut result = 0;
     for (low, high) in viable_time_ranges {
         if result != 0 {
-            result *= high - low;
+            result *= high - low + 1;
         } else {
-            result = high - low;
+            result = high - low + 1;
+        }
+        if debug_print {
+            println!("({}, {}), range {}", low, high, high - low);
         }
     }
 
@@ -52,10 +55,17 @@ impl BoatRaceData {
                 Ok(line) => line,
                 Err(e) => return Err(e.to_string()),
             };
-            match Self::parse_line(&l, debug_print) {
-                Ok(BoatDataType::Time(data)) => result.times = data,
-                Ok(BoatDataType::Distance(data)) => result.distances = data,
-                Err(e) => return Err(e),
+            let data_group = Self::parse_line(&l, debug_print)?;
+            use BoatDataType::*;
+            if debug_print {
+                match &data_group {
+                    Time(d) => println!("Parsed Time: {:?}", d),
+                    Distance(d) => println!("Parsed Distance: {:?}", d),
+                }
+            }
+            match data_group {
+                Time(data) => result.times = data,
+                Distance(data) => result.distances = data,
             }
         }
 
@@ -66,7 +76,7 @@ impl BoatRaceData {
         return Ok(result);
     }
 
-    pub fn get_charge_time_ranges(&self) -> Vec<(u32, u32)> {
+    pub fn get_charge_time_ranges(&self, _debug_print: bool) -> Vec<(u32, u32)> {
         let mut result = vec![];
         let calc_lowest = |time: u32, distance: u32| -> Option<u32> {
             let mut mid = time / 2;
@@ -82,7 +92,7 @@ impl BoatRaceData {
                 let curr_mid_distance = mid * (time - mid);
 
                 if curr_mid_distance == distance {
-                    return Some(mid);
+                    return Some(mid + 1);
                 }
                 is_too_low = curr_mid_distance < distance;
 
@@ -93,7 +103,7 @@ impl BoatRaceData {
                 }
             }
 
-            return Some(if is_too_low { low_end } else { high_end });
+            return Some(if is_too_low { low_end + 1 } else { low_end });
         };
 
         for i in 0..self.times.len() {
