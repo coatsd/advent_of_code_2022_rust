@@ -36,13 +36,13 @@ fn main() {
 }
 
 enum BoatDataType {
-    Time(Vec<u32>),
-    Distance(Vec<u32>),
+    Time(Vec<u64>),
+    Distance(Vec<u64>),
 }
 
 pub struct BoatRaceData {
-    times: Vec<u32>,
-    distances: Vec<u32>,
+    times: Vec<u64>,
+    distances: Vec<u64>,
 }
 impl BoatRaceData {
     pub fn parse(buf: BufReader<File>, debug_print: bool) -> Result<Self, String> {
@@ -77,7 +77,7 @@ impl BoatRaceData {
         return Ok(result);
     }
 
-    pub fn get_charge_time_ranges(&self, debug_print: bool) -> Vec<(u32, u32)> {
+    pub fn get_charge_time_ranges(&self, debug_print: bool) -> Vec<(u64, u64)> {
         let mut result = vec![];
 
         for i in 0..self.times.len() {
@@ -99,13 +99,13 @@ impl BoatRaceData {
         return result;
     }
 
-    fn calc_lowest(time: u32, distance: u32, debug_print: bool) -> Option<u32> {
+    fn calc_lowest(time: u64, distance: u64, debug_print: bool) -> Option<u64> {
         let is_odd = time % 2 != 0;
         let mut mid = if is_odd { (time / 2) + 1 } else { time / 2 };
         let mut is_too_low = mid * (time - mid) <= distance;
 
-        let print_debug = |low_end: u32| {
-            let format_calc = |calc_type: &str, t: u32| -> String {
+        let print_debug = |low_end: u64| {
+            let format_calc = |calc_type: &str, t: u64| -> String {
                 let offset = time - t;
                 return format!("{}: {} * {} = {}", calc_type, t, offset, t * offset);
             };
@@ -166,8 +166,8 @@ impl BoatRaceData {
     }
 
     fn parse_line(line: &String, _debug_print: bool) -> Result<BoatDataType, String> {
-        let parse_num = |numeric_string: &mut String| -> Result<u32, String> {
-            let result = match numeric_string.parse::<u32>() {
+        let parse_num = |numeric_string: &mut String| -> Result<u64, String> {
+            let result = match numeric_string.parse::<u64>() {
                 Ok(n) => n,
                 Err(e) => return Err(e.to_string()),
             };

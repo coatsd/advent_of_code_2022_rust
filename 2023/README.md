@@ -7,7 +7,7 @@
 |   3 |    Done    |    Done    |
 |   4 |    Done    |    Done    |
 |   5 |    Done    |  Debugging |
-|   6 |  Debugging | Not Started |
+|   6 |    Done    | Not Started |
 |   7 | Not Started | Not Started |
 |   8 | Not Started | Not Started |
 |   9 | Not Started | Not Started |
