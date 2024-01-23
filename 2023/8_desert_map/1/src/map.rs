@@ -4,6 +4,9 @@ use std::{
     io::{BufRead, BufReader},
 };
 
+const START: &str = "AAA";
+const END: &str = "ZZZ";
+
 pub struct Location {
     pos: String,
     fork: (String, String),
@@ -83,7 +86,7 @@ impl Map {
     pub fn parse(buf: BufReader<File>) -> Result<Self, String> {
         let mut steps = vec![];
         let mut locations = vec![];
-        let start = "AAA".to_string();
+        let start = START.to_string();
 
         for (i, l) in buf.lines().enumerate() {
             let l = match l {
@@ -147,7 +150,7 @@ impl Map {
         let mut curr_pos: &String = &self.start;
         let mut command_index = 0;
 
-        while curr_pos != "ZZZ" {
+        while curr_pos != END {
             result += 1;
             let command = self.steps[command_index];
             curr_pos = match command {
