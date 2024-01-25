@@ -1,147 +1,12 @@
+use crate::{
+    coord::Coord,
+    location::{Location, Locations},
+};
 use std::{
     fmt::Display,
     fs::File,
     io::{BufRead, BufReader},
 };
-
-const STARTCHAR: char = 'A';
-const ENDCHAR: char = 'Z';
-
-#[derive(Clone, Copy)]
-pub struct Coord([char; 3]);
-impl Coord {
-    pub fn parse(set: String) -> Result<Self, String> {
-        if set.len() != 3 {
-            return Err(format!("String is an invalid Coordinate: {}", set));
-        }
-        let mut result = [' '; 3];
-
-        for (i, c) in set.chars().enumerate() {
-            result[i] = c;
-        }
-
-        return Ok(Coord(result));
-    }
-
-    pub fn is_start(&self) -> bool {
-        return self.0[2] == STARTCHAR;
-    }
-
-    pub fn is_end(&self) -> bool {
-        return self.0[2] == ENDCHAR;
-    }
-
-    pub fn val(&self) -> &[char; 3] {
-        return &self.0;
-    }
-}
-impl Eq for Coord {}
-impl PartialEq for Coord {
-    fn eq(&self, other: &Self) -> bool {
-        for i in 0..self.0.len() {
-            if self.0[i] != other.0[i] {
-                return false;
-            }
-        }
-        return true;
-    }
-}
-impl Ord for Coord {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        use std::cmp::Ordering::Equal;
-        for i in 0..self.0.len() {
-            let char_cmp = self.0[i].cmp(&other.0[i]);
-            if char_cmp != Equal {
-                return char_cmp;
-            }
-        }
-        return Equal;
-    }
-}
-impl PartialOrd for Coord {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        return Some(self.cmp(other));
-    }
-}
-impl Display for Coord {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut result = "".to_string();
-        for i in 0..self.0.len() {
-            result.push(self.0[i]);
-        }
-        write!(f, "{}", result)
-    }
-}
-
-pub struct Location {
-    pos: Coord,
-    fork: (Coord, Coord),
-}
-impl Location {
-    pub fn new(pos: Coord, fork: (Coord, Coord)) -> Self {
-        return Self { pos, fork };
-    }
-}
-impl Eq for Location {}
-impl PartialEq for Location {
-    fn eq(&self, other: &Self) -> bool {
-        let string_cmp = self.pos.cmp(&other.pos);
-        if string_cmp == std::cmp::Ordering::Equal {
-            return true;
-        }
-        return false;
-    }
-}
-impl Ord for Location {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        return self.pos.cmp(&other.pos);
-    }
-}
-impl PartialOrd for Location {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        return Some(self.pos.cmp(&other.pos));
-    }
-}
-impl Display for Location {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "pos: {}, fork: ({}, {})",
-            self.pos, self.fork.0, self.fork.1
-        )
-    }
-}
-
-pub struct Locations(Vec<Location>);
-impl Locations {
-    pub fn get_value(&self, k: &Coord) -> Option<&(Coord, Coord)> {
-        let mut l = 0;
-        let mut r = self.0.len() - 1;
-
-        while l <= r {
-            let mid = l + (r - l) / 2;
-
-            let string_cmp = self.0[mid].pos.cmp(k);
-
-            use std::cmp::Ordering::*;
-            match string_cmp {
-                Equal => return Some(&self.0[mid].fork),
-                Less => l = mid + 1,
-                Greater => r = mid - 1,
-            }
-        }
-        return None;
-    }
-}
-impl Display for Locations {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut result = "Locations:\n".to_string();
-        for i in 0..self.0.len() {
-            result = format!("{}\t{}\n", result, self.0[i]);
-        }
-        write!(f, "{}", result)
-    }
-}
 
 pub struct Map {
     steps: Vec<bool>,
@@ -173,10 +38,11 @@ impl Map {
         }
 
         locations.sort();
+        let locations = Locations::new(locations);
 
         return Ok(Self {
             steps,
-            locations: Locations(locations),
+            locations,
             start,
         });
     }
@@ -221,7 +87,7 @@ impl Map {
         return Ok(());
     }
 
-    pub fn traverse_map(&self) -> Result<u32, String> {
+    pub fn traverse_map(&self, debug_print: bool) -> Result<u32, String> {
         let mut result = 0;
         let mut curr_pos = self.start.clone();
         let mut command_index = 0;
@@ -233,6 +99,17 @@ impl Map {
             }
             return true;
         };
+        let print_debug = |curr_pos: &Vec<Coord>| {
+            if debug_print {
+                let mut start_string = "".to_string();
+                for i in 0..curr_pos.len() {
+                    start_string = format!("{} {}", start_string, &curr_pos[i]);
+                }
+                println!("{}", start_string)
+            }
+        };
+
+        print_debug(&curr_pos);
 
         while !is_end(&curr_pos) {
             result += 1;
@@ -250,6 +127,8 @@ impl Map {
                     },
                 };
             }
+
+            print_debug(&curr_pos);
 
             if command_index < self.steps.len() - 1 {
                 command_index += 1;

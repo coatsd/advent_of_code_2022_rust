@@ -23,7 +23,7 @@ fn main() {
         println!("{}", map_data);
     }
 
-    let result = map_data.traverse_map().unwrap();
+    let result = map_data.traverse_map(debug_print).unwrap();
 
     println!("{}", result);
 }
