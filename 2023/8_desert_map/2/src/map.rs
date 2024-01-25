@@ -88,47 +88,61 @@ impl Map {
     }
 
     pub fn traverse_map(&self, debug_print: bool) -> Result<u32, String> {
-        let mut result = 0;
-        let mut curr_pos = self.start.clone();
-        let mut command_index = 0;
-        let is_end = |curr_pos: &Vec<Coord>| -> bool {
-            for i in 0..curr_pos.len() {
-                if !curr_pos[i].is_end() {
+        let mut path_steps = vec![];
+
+        for i in 0..self.start.len() {
+            path_steps.push(self.traverse_one_path(&self.start[i])?);
+        }
+
+        let mut path_step_max = 0;
+        for i in 0..path_steps.len() {
+            if path_steps[i] > path_step_max {
+                path_step_max = path_steps[i];
+            }
+        }
+
+        if debug_print {
+            println!(
+                "Required Steps for paths: {:?} - Max: {}",
+                &path_steps, path_step_max
+            );
+        }
+
+        let is_required_steps = |result: u32, path_steps: &Vec<u32>| -> bool {
+            for i in 0..path_steps.len() {
+                if result % path_steps[i] != 0 {
                     return false;
                 }
             }
             return true;
         };
-        let print_debug = |curr_pos: &Vec<Coord>| {
-            if debug_print {
-                let mut start_string = "".to_string();
-                for i in 0..curr_pos.len() {
-                    start_string = format!("{} {}", start_string, &curr_pos[i]);
-                }
-                println!("{}", start_string)
-            }
-        };
 
-        print_debug(&curr_pos);
+        let mut result = path_step_max;
+        while !is_required_steps(result, &path_steps) {
+            result += path_step_max;
+        }
 
-        while !is_end(&curr_pos) {
+        return Ok(result);
+    }
+    fn traverse_one_path(&self, coord: &Coord) -> Result<u32, String> {
+        let mut result = 0;
+        let mut command_index = 0;
+        let mut curr_pos = coord.clone();
+
+        while !curr_pos.is_end() {
             result += 1;
             let command = self.steps[command_index];
 
-            for i in 0..curr_pos.len() {
-                curr_pos[i] = match command {
-                    true => match self.locations.get_value(&curr_pos[i]) {
-                        Some(fork) => fork.1,
-                        None => return Err(format!("Could not find position {}", curr_pos[i])),
-                    },
-                    false => match self.locations.get_value(&curr_pos[i]) {
-                        Some(fork) => fork.0,
-                        None => return Err(format!("Could not find position {}", curr_pos[i])),
-                    },
-                };
-            }
-
-            print_debug(&curr_pos);
+            curr_pos = match command {
+                true => match self.locations.get_value(&curr_pos) {
+                    Some(fork) => fork.1,
+                    None => return Err(format!("Could not find position {}", curr_pos)),
+                },
+                false => match self.locations.get_value(&curr_pos) {
+                    Some(fork) => fork.0,
+                    None => return Err(format!("Could not find position {}", curr_pos)),
+                },
+            };
 
             if command_index < self.steps.len() - 1 {
                 command_index += 1;

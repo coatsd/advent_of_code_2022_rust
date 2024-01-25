@@ -19,6 +19,7 @@ fn main() {
 
     let buf = BufReader::new(open_file(file_path));
     let map_data = Map::parse(buf).unwrap();
+
     if debug_print {
         println!("{}", map_data);
     }
