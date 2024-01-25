@@ -87,7 +87,7 @@ impl Map {
         return Ok(());
     }
 
-    pub fn traverse_map(&self, debug_print: bool) -> Result<u32, String> {
+    pub fn traverse_map(&self, debug_print: bool) -> Result<u64, String> {
         let mut path_steps = vec![];
 
         for i in 0..self.start.len() {
@@ -108,7 +108,7 @@ impl Map {
             );
         }
 
-        let is_required_steps = |result: u32, path_steps: &Vec<u32>| -> bool {
+        let is_required_steps = |result: u64, path_steps: &Vec<u64>| -> bool {
             for i in 0..path_steps.len() {
                 if result % path_steps[i] != 0 {
                     return false;
@@ -124,7 +124,7 @@ impl Map {
 
         return Ok(result);
     }
-    fn traverse_one_path(&self, coord: &Coord) -> Result<u32, String> {
+    fn traverse_one_path(&self, coord: &Coord) -> Result<u64, String> {
         let mut result = 0;
         let mut command_index = 0;
         let mut curr_pos = coord.clone();
