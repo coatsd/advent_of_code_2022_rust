@@ -5,7 +5,7 @@ use crate::{
 use std::{
     fmt::Display,
     fs::File,
-    io::{BufRead, BufReader},
+    io::{stdout, BufRead, BufReader, Write},
 };
 
 pub struct Map {
@@ -118,8 +118,16 @@ impl Map {
         };
 
         let mut result = path_step_max;
+        let mut stdout = stdout();
         while !is_required_steps(result, &path_steps) {
             result += path_step_max;
+            if debug_print {
+                print!("\r{}", result);
+                stdout.flush().unwrap();
+            }
+        }
+        if debug_print {
+            println!();
         }
 
         return Ok(result);
