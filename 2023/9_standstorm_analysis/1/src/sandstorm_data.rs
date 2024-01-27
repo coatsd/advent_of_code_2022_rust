@@ -68,6 +68,8 @@ impl Sandstorm {
             }
             let index = trends.len() - 1;
             trends[index] = self.0[i] - trends[0];
+            trends.push(0);
+            trends[0] = self.0[i];
             apply_trends(&mut trends);
         }
 
