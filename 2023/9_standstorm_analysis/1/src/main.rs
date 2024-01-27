@@ -27,7 +27,7 @@ fn main() {
     let sandstorm_data_next_readings = sandstorm_data.get_next_readings(debug_print);
 
     let mut result = 0;
-    for reading in sandstorm_data_next_readings {
+    for reading in sandstorm_data_next_readings.unwrap() {
         result += reading;
     }
 

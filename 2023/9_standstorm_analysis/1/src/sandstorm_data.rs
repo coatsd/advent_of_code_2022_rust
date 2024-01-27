@@ -39,41 +39,43 @@ impl Sandstorm {
         return self.0[i];
     }
 
-    pub fn get_next_reading(&self, debug_print: bool) -> i32 {
-        let mut trend_vars = vec![];
-        let calc_trend_var = |reading: i32, trend_vars: &Vec<i32>| -> i32 {
-            let mut result = reading;
-            for t in trend_vars {
-                result -= *t;
+    pub fn get_next_reading(&self, debug_print: bool) -> Result<i32, String> {
+        let mut trends = vec![];
+
+        if self.0.len() > 1 {
+            trends.push(self.0[1]);
+            trends.push(self.0[1] - self.0[0]);
+            if trends[1] != 0 {
+                trends.push(0);
             }
-            return result;
-        };
-        let apply_trend_vars = |reading: i32, trend_vars: &Vec<i32>| -> i32 {
-            let mut result = reading;
-            for t in trend_vars {
-                result += *t;
+        } else {
+            return Err(format!(
+                "Not enough numbers in sequence to determine trend: {}",
+                self
+            ));
+        }
+
+        let apply_trends = |trends: &mut Vec<i32>| {
+            for i in (1..trends.len()).rev() {
+                trends[i - 1] += trends[i];
             }
-            return result;
         };
 
         for i in 1..self.0.len() {
-            if trend_vars.len() == 0 {
-                trend_vars.push(self.0[i] - self.0[i - 1]);
+            if self.0[i] == trends[0] {
+                apply_trends(&mut trends);
                 continue;
             }
-            let reading_rem = calc_trend_var(self.0[i], &trend_vars);
-            if reading_rem != 0 {
-                trend_vars.push(reading_rem);
-            }
+            let index = trends.len() - 1;
+            trends[index] = self.0[i] - trends[0];
+            apply_trends(&mut trends);
         }
-
-        let result = apply_trend_vars(self.0[self.0.len() - 1], &trend_vars);
 
         if debug_print {
-            println!("Projected reading for Sandstorm {} is: {}", self, result);
+            println!("Projected reading for Sandstorm {} is: {}", self, trends[0]);
         }
 
-        return result;
+        return Ok(trends[0]);
     }
 }
 impl Display for Sandstorm {
@@ -108,13 +110,13 @@ impl Sandstorms {
         return &self.0[i];
     }
 
-    pub fn get_next_readings(&self, _debug_print: bool) -> Vec<i32> {
+    pub fn get_next_readings(&self, _debug_print: bool) -> Result<Vec<i32>, String> {
         let mut result = vec![];
         for i in 0..self.0.len() {
-            result.push(self.0[i].get_next_reading(_debug_print));
+            result.push(self.0[i].get_next_reading(_debug_print)?);
         }
 
-        return result;
+        return Ok(result);
     }
 }
 impl Display for Sandstorms {
