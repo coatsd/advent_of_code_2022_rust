@@ -15,13 +15,16 @@ fn main() {
         true => TESTFILEPATH,
         false => FILEPATH,
     };
-    let _debug_print = args.contains(&"-d".to_string());
+    let debug_print = args.contains(&"-d".to_string());
 
     let buf = BufReader::new(open_file(file_path));
     let pipe_map = PipeMap::parse(buf).unwrap();
+    if debug_print {
+        println!("Parsed PipeMap:\n{}", pipe_map);
+    }
 
     let crawler = TileCrawler::new(&pipe_map.start);
-    let result = crawler.get_longest_crawl_path(&pipe_map);
+    let result = crawler.get_longest_crawl_path(&pipe_map, debug_print);
 
     println!("{}", result);
 }

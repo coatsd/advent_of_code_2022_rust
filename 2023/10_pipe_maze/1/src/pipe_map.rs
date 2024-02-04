@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -24,6 +25,11 @@ impl Eq for Coord {}
 impl PartialEq for Coord {
     fn eq(&self, other: &Self) -> bool {
         return self.x() == other.x() && self.y() == other.y();
+    }
+}
+impl Display for Coord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x(), self.y())
     }
 }
 
@@ -52,6 +58,20 @@ impl Tile {
         };
     }
 
+    pub fn get_char(&self) -> char {
+        use Tile::*;
+        return match self {
+            VPipe => '|',
+            HPipe => '-',
+            NEPipe => 'L',
+            NWPipe => 'J',
+            SEPipe => '7',
+            SWPipe => 'F',
+            Start => 'S',
+            _ => '.',
+        };
+    }
+
     pub fn is_connected(&self, other: &Self, self_coord: &Coord, other_coord: &Coord) -> bool {
         let x_diff = self_coord.x() as i32 - other_coord.x() as i32;
         let y_diff = self_coord.y() as i32 - other_coord.y() as i32;
@@ -76,6 +96,11 @@ impl Tile {
             // All else are not connected.
             _ => false,
         };
+    }
+}
+impl Display for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.get_char())
     }
 }
 
@@ -128,5 +153,19 @@ impl PipeMap {
 
     fn get_value(&self, coord: &Coord) -> &Tile {
         return &self.map[coord.y()][coord.x()];
+    }
+}
+impl Display for PipeMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut result = format!("Starting Coord: {}\n", self.start);
+        for i in 0..self.map.len() {
+            let mut l = "".to_string();
+            for j in 0..self.map[i].len() {
+                l.push(self.map[i][j].get_char());
+            }
+            l.push('\n');
+            result = format!("{}{}", result, l);
+        }
+        write!(f, "{}", result)
     }
 }
