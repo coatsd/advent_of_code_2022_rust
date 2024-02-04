@@ -85,14 +85,14 @@ impl Tile {
             (Start, _, _, _)
             | (_, Start, _, _) => true,
             // Connection combinations for:
-            // Above other
-            (SWPipe | VPipe | SEPipe, NWPipe | VPipe | NEPipe, 0, -1)
-            // Right of other
-            | (NWPipe | HPipe | SWPipe, SEPipe | HPipe | NEPipe, 1, 0)
-            // Below other
-            | (NWPipe | VPipe | NEPipe, SWPipe | VPipe | SEPipe, 0, 1)
             // Left of other
-            | (SEPipe | HPipe | NEPipe, NWPipe | HPipe | SWPipe, -1, 0) => true,
+            (SEPipe | HPipe | NEPipe, NWPipe | HPipe | SWPipe, 1, 0)
+            // Above other
+            | (SWPipe | VPipe | SEPipe, NWPipe | VPipe | NEPipe, 0, 1)
+            // Right of other
+            | (NWPipe | HPipe | SWPipe, SEPipe | HPipe | NEPipe, -1, 0)
+            // Below other
+            | (NWPipe | VPipe | NEPipe, SWPipe | VPipe | SEPipe, 0, 1) => true,
             // All else are not connected.
             _ => false,
         };
