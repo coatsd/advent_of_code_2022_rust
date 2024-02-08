@@ -29,7 +29,7 @@ fn main() {
     println!("{}", result);
 }
 
-fn open_file<P>(path: P) -> File
+pub fn open_file<P>(path: P) -> File
 where
     P: AsRef<Path> + std::fmt::Display,
 {

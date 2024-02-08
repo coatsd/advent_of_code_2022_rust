@@ -85,9 +85,7 @@ impl AdjacentTiles {
     }
 }
 
-#[derive(Debug)]
 enum NextMoveParseError {
-    InvalidLastMove,
     NoValidNextMoves,
 }
 
@@ -100,23 +98,18 @@ impl NextMove {
         adjacent_tiles: &AdjacentTiles,
         last_dir: &Direction,
     ) -> Result<Self, NextMoveParseError> {
-        use NextMoveParseError::*;
-        let last = match adjacent_tiles.get_by_dir(&last_dir) {
-            Some(c) => c,
-            None => return Err(InvalidLastMove),
-        };
         use Direction::*;
         for d in [Left, Up, Right, Down] {
+            if *last_dir == d {
+                continue;
+            }
             if let Some(c) = adjacent_tiles.get_by_dir(&d) {
-                if last == c {
-                    continue;
-                }
-                let last_dir = last_dir.inverse();
+                let last_dir = d.inverse();
                 let next = Coord::new(c.x(), c.y());
                 return Ok(Self { next, last_dir });
             }
         }
-        return Err(NoValidNextMoves);
+        return Err(NextMoveParseError::NoValidNextMoves);
     }
 }
 
@@ -150,17 +143,15 @@ impl TileCrawler {
 
         let mut result = 0;
         for r in crawl_results.iter() {
+            if *r == 0 {
+                continue;
+            }
             if *r > result {
                 result = *r;
             }
         }
 
-        if result % 2 != 0 {
-            result /= 2 + 1;
-        } else {
-            result /= 2;
-        }
-
+        result = (result / 2) + (result % 2);
         return result;
     }
     fn crawl(
@@ -181,7 +172,6 @@ impl TileCrawler {
             let next_move = match NextMove::parse(&adjacent_tiles, &from) {
                 Ok(n) => n,
                 Err(e) => match e {
-                    NextMoveParseError::InvalidLastMove => panic!("Last move is invalid {from}"),
                     NextMoveParseError::NoValidNextMoves => {
                         panic!("No next moves from {curr_tile}")
                     }
